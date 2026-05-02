@@ -11,39 +11,79 @@ for address, comp in component.list() do
 end
 
 if not reactor then
-  error("Reator nao encontrado! Verifique o Adapter.")
+  error("Reator nao encontrado!")
+end
+
+-- helpers
+local function pct(v)
+  if not v then return 0 end
+  return v * 100
+end
+
+-- layout fixo (3 colunas x 2 linhas)
+local layout = {
+  {"TEMP", 1, 1},
+  {"CAMPO", 1, 2},
+  {"SAT", 1, 3},
+
+  {"FUEL", 2, 1},
+  {"GEN", 2, 2},
+  {"STATUS", 2, 3}
+}
+
+-- desenha labels fixos uma vez
+term.clear()
+
+for _, cell in ipairs(layout) do
+  local label, row, col = cell[1], cell[2], cell[3]
+  term.setCursor(col * 15 - 14, row * 3)
+  term.write(label .. ":")
 end
 
 while true do
-  term.clear()
-
   local info = reactor.getReactorInfo()
 
-  print("=== REATOR DRACONIC ===")
+  -- valores
+  local temp = info.temperature or 0
+  local field = pct(info.fieldStrength)
+  local sat = pct(info.energySaturation)
+  local fuel = pct(info.fuelConversion)
+  local gen = info.generationRate or 0
 
-  print("Temperatura: " .. (info.temperature or 0) .. " C")
-  print("Campo: " .. (info.fieldStrength or 0))
-  print("Saturacao: " .. (info.energySaturation or 0))
-  print("Geracao: " .. (info.genRate or 0) .. " RF/t")
-  print("Combustivel: " .. (info.fuelConversion or 0))
+  -- TEMP
+  term.setCursor(6, 1)
+  term.write(string.format("%.0f C   ", temp))
 
-  print("\n=== STATUS ===")
+  -- CAMPO
+  term.setCursor(6, 4)
+  term.write(string.format("%.1f%%   ", field))
 
-  if info.temperature > 8000 then
-    print("ALERTA: Superaquecendo!")
-  elseif info.temperature < 7000 then
-    print("Baixa temperatura")
-  else
-    print("Temperatura OK")
+  -- SAT
+  term.setCursor(6, 7)
+  term.write(string.format("%.1f%%   ", sat))
+
+  -- FUEL
+  term.setCursor(21, 1)
+  term.write(string.format("%.2f%%   ", fuel))
+
+  -- GEN
+  term.setCursor(21, 4)
+  term.write(string.format("%d RF/t   ", gen))
+
+  -- STATUS
+  term.setCursor(21, 7)
+
+  local status = "OK"
+
+  if temp > 8000 then
+    status = "HOT"
+  elseif sat > 60 then
+    status = "WASTE"
+  elseif field < 45 then
+    status = "UNSTABLE"
   end
 
-  if info.energySaturation > 0.6 then
-    print("Saturacao alta (ineficiente)")
-  elseif info.energySaturation < 0.4 then
-    print("Saturacao baixa (instavel)")
-  else
-    print("Saturacao ideal")
-  end
+  term.write(status .. "     ")
 
   os.sleep(1)
 end
