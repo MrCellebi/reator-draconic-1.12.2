@@ -1,12 +1,11 @@
 local component = require("component")
 local term = require("term")
-local event = require("event")
 
--- tenta encontrar o reator
+-- encontra o reator
 local reactor = nil
 
 for address, comp in component.list() do
-  if comp == "draconic_reactor" then
+  if comp == "draconic_reactor" or comp == "draconic_reactor_adapter" then
     reactor = component.proxy(address)
   end
 end
@@ -15,57 +14,36 @@ if not reactor then
   error("Reator nao encontrado! Verifique o Adapter.")
 end
 
-local function percent(value, max)
-  return (value / max) * 100
-end
-
 while true do
   term.clear()
-  
-  local temp = reactor.getTemperature()
-  local field = reactor.getFieldStrength()
-  local maxField = reactor.getMaxFieldStrength()
-  local sat = reactor.getEnergySaturation()
-  local maxSat = reactor.getMaxEnergySaturation()
-  local gen = reactor.getGenerationRate()
-  local fuel = reactor.getFuelConversion()
 
-  local fieldPct = percent(field, maxField)
-  local satPct = percent(sat, maxSat)
+  local info = reactor.getReactorInfo()
 
   print("=== REATOR DRACONIC ===")
-  print(string.format("Temp: %.0f C", temp))
-  print(string.format("Campo: %.1f%%", fieldPct))
-  print(string.format("Saturacao: %.1f%%", satPct))
-  print(string.format("Geracao: %d RF/t", gen))
-  print(string.format("Conversao: %.4f", fuel))
 
-  print("\n=== ANALISE ===")
+  print("Temperatura: " .. (info.temperature or 0) .. " C")
+  print("Campo: " .. (info.fieldStrength or 0))
+  print("Saturacao: " .. (info.energySaturation or 0))
+  print("Geracao: " .. (info.genRate or 0) .. " RF/t")
+  print("Combustivel: " .. (info.fuelConversion or 0))
 
-  if temp > 8000 then
-    print("ALERTA: Temperatura alta!")
-  elseif temp < 7000 then
-    print("Temperatura baixa (ineficiente)")
+  print("\n=== STATUS ===")
+
+  if info.temperature > 8000 then
+    print("ALERTA: Superaquecendo!")
+  elseif info.temperature < 7000 then
+    print("Baixa temperatura")
   else
-    print("Temperatura ideal")
+    print("Temperatura OK")
   end
 
-  if fieldPct < 50 then
-    print("Campo baixo (RISCO!)")
-  elseif fieldPct > 60 then
-    print("Campo alto (ineficiente)")
-  else
-    print("Campo ok")
-  end
-
-  if satPct > 60 then
-    print("Saturacao alta (perdendo eficiencia)")
-  elseif satPct < 40 then
+  if info.energySaturation > 0.6 then
+    print("Saturacao alta (ineficiente)")
+  elseif info.energySaturation < 0.4 then
     print("Saturacao baixa (instavel)")
   else
     print("Saturacao ideal")
   end
 
-  print("\nAtualizando em 1s...")
   os.sleep(1)
 end
